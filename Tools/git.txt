@@ -1,0 +1,146 @@
+
+1. Advantages of Git over other Central Version Control System.
+Git is a distributed VCS that records each version of code image in local machine and you can push the changes to other machine. And for many developers to collaborate in a project, it is convenient
+to setup a central code repository and each developer can push changes in his local machine to the central server at any time the network is available. 
+From this description, we know that in most of the time, we don't have to access to the central server for some operations, for example,
+if we want to know the difference between current and previous versions, we don't have to access to the remote server to get the history log, in Git, the code images of current and previous versions
+are both stored in local machine, so the diff can be done locally. We only have to upload the changes to the central server to make them available to other developers from time to time(of course,
+to make the changes available as soon as possible, it is recommended to upload the changes immediately, but at least we can make changes and commit them when the network is not available). This
+feature of Git brings two advantages over other CVCS: 1) We can make changes and commit them when the network is not available. 2) Overhead of some version control related operations is reduced. 
+This feature comes from the data concept in Git. Git thinks of its data more like a set of snapshots of a mini filesystem. Every time you commit, or save the state of your project in Git, it basically takes a picture of what all your files look like at that moment and stores a reference to that snapshot. To be efficient, if files have not changed, Git doesn’t store the file again—just a link to the previous identical file it has already stored.
+
+2. Simple customization
+1) Configuration of git for a specific user
+git --global user.name "linming"
+git --global user.email "linming@meituan"
+The user configuration will be written to ~/.gitconfig. You commit code using Git via the user configuration here.
+Again, you need to do this only once if you pass the --global option, because then Git will always use that information for anything you do on that system. If you want to override this with a different name or e-mail address for specific projects, you can run the command without the --global option when you’re in that project.
+
+You can check your cunstomization by using command "git config --list".
+You can also check what Git thinks a specific key’s value is by typinggit config {key}: 
+$ git config user.name
+linming
+
+2) Ignore some files that you don't want to be version controlled by Git
+add patterns specifing the files you want to ignore to .gitignore
+Ex. .gitignore
+*.[oa]
+*~
+The rules for the patterns you can put in the .gitignore file are as follows:
+• Blank lines or lines starting with # are ignored.
+• Standard glob patterns work.
+• You can end patterns with a forward slash (/) to specify a directory.
+• You can negate a pattern by starting it with an exclamation point (!). 
+
+3. File Status Lifecycle in Git
+Files in the working directory can be divided into tracked and untracked files, excluding .git directory.
+Tracked files refer to the files that are under versioning control of Git, while the untracked files are the other ones in the working directory.
+Every tracked file can be in one of the following status at some time:
+modified: a file is in modified state if you modify it.
+staged: a file is in staged state if its snapshot is added to the staging area(the staging area stores the information about what will go into your next commit).
+tracked and unmodified: when you commit, the images of all the files in the staging area are stored into the Git directory permanently.
+
+	  git add	  		 edit             git add        
+untracked   ->   tracked and unmodified  ->    modified    ->    staged
+            <-     ^                                 |
+        git rm     |_________________________________
+		              git commit
+From the lifecycle depicted above, we know that we have to stage the files modified using "git add" firstly each time we commit them.
+
+5. Basic operations
+0) git help command
+man git-command
+Ex.
+git help push
+man git-push
+
+1) git clone url
+copy Git database and the lastest version of data from an existing remote Git repository.
+Note if you want to create a Git repository for an existing project, you should use the following commands:
+git init # in the project directory
+git add *
+git commit -m "initial commit"
+
+2) git checkout url
+retrieve a specific version of code from remote repository.
+
+3) git status
+tells you which branch you are operating on, and the status of the files in modified or staged status.
+
+4) git diff [options]
+git diff # tells you what changes you have made but not staged yet.
+git diff --cached # tells you what changes will go into your next commit.
+
+5) git add file
+
+6) git rm file
+if the file is modified and staged, you should use "git rm -f file" to remove the file out of Git forcely.
+Note "git rm [-f] file" will remove the file in the disk as well. So if you only want to remove it from Git(becomes untracked) but still keep it in the disk, you should use "git rm --cached file".
+
+7) git log
+view the commit log
+You can also use visualize tool gitk to view the commit log in GUI.
+
+8) Undo things
+Sometimes you want to undo something at any stage.
+a. amend to the last commit
+For example, you miss some files in the last commit, you want to commit them but without a new code image stored into the Git directory.
+git commit -m "last commit"
+git add forgotten_file
+git commit --amend
+
+b. unstaging a staged file
+For example, you staged two files, but you want one of them to be unstaged.
+git add file1
+git add file2
+git reset HEAD file2
+
+c. unmodify an modified file, that is, discard the changes made but not yet staged.
+git checkout -- modified_file
+Note this is a dangerous operation, most of the time, you only want to discard some instead of all changes made. In such case, you only have to edit the modified file and undo the changes manually.
+
+9）Working with remote
+When you clone a repository from a remote server, the remote server can be accessed via name "origin" by default, you can treat "origin" as the alias of the remote server.
+a. Get the name and address of the remote server
+git remote -v
+
+b. Add an alias for the remote server, later you can access to the remote server using the alias instead of inputing the long and hard to remember address
+git remote add alias url
+If you want to change an alias of the remote server to another name, you can use the following command:
+git remote rename old_alias new_alias
+If you want to remove an alias of the remote server, use the following command:
+git remote rm alias
+
+c. Fetch data from remtoe repository
+git fetch alias/url
+Note fetch get all information from the remote server donated by alias or url, but it doesn't merge the differences into your working code. You have to do the merge manually.
+If you want to get the information from certain branch and merge the differences into your working code automatically, using "git pull".
+git pull -u [alias/url] branch
+Note git clone will get all information of all branches in the remote repository to the local machine, can we only clone certain branch in the remote repository?
+
+d. Push data to remote repository
+git push alias/url branch
+This command works only if you cloned from a server to which you have write access and if nobody has pushed in the meantime. 
+If you and someone else clone at the same time and they push upstream and then you push upstream, your push will rightly be rejected. 
+You’ll have to pull down their work first and incorporate it into yours before you’ll be allowed to push. 
+
+e. Sharing tags
+Add version tag when pushing data to remote repository.
+git push alias/url [tagname]
+
+10) Data representation and branch internal in Git
+Section 4.1 in <<Pro Git>> gives a good explaination on how data are stored in Git, including commit objects laybout, branch object representation, and how to represent switch between branches.
+Pay attention how the HEAD pointer moves when switching between different branches and in what case the branch tree diverges.
+a. Create a branch
+git branch branch_name
+
+b. Switch to a branch
+git checkout branch_name
+N.B. "git checkout -b branch_name" creates a branch with name "branch_name" and switches to it.
+
+c. Merge a branch into another one
+To merge a branch into another one, you have to switch to the target branch and merge the source branch.
+git checkout target_branch
+git merge source_branch
+Note how Git deals with the merging from an upstream branch and a diverged branch differently.
+
