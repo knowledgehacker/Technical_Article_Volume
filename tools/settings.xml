@@ -10,6 +10,13 @@
            <releases><enabled>true</enabled></releases>
 	   <snapshots><enabled>true</enabled></snapshots>
        </repository>
+       <repository>
+	  <id>jboss public</id>
+	  <name>local private jboss</name>
+	  <url>http://localhost:8081/nexus/content/repositories/jboss</url>
+	  <releases><enabled>true</enabled></releases>
+	  <snapshots><enabled>true</enabled></snapshots>
+       </repository>
      </repositories>
      <pluginRepositories>
        <pluginRepository>
@@ -21,6 +28,7 @@
        </pluginRepository>
      </pluginRepositories>
    </profile>
+</profiles>
 
 <activeProfiles> 
     <activeProfile>nexus public</activeProfile> 
