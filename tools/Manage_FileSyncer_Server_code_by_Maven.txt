@@ -28,15 +28,18 @@ in "src/main/java/sync/server/http/HttpSyncServer.java".
 2) Create file "pom.xml" in directory "FileSyncer/http/server".
 Specify the project coordinate "groupId, artifactId, version", dependencies.
 For detailed information, please refer to file "pom.xml" in "FileSyncer/http/server".
+You can use goals of the plugin Dependency to get dependency information about your project.
+For example, "mvn dependency:resolve" lists the dependencies have been resolved.
+"mvn dependency:tree" lists the dependencies in tree view.
 
 3. Add custom repositories for missing dependencies
 If a repository your project depends on doesn't exist in the repositories list, you can add it by yourself.
 For example, your project depends on jboss which doesn't exist in the repositories list by default,
 you can find and add a Maven repository containing jboss as follows:
-1) visit webpage "repository.jboss.org/nexus/index.html" and click "Views/Repositories -> Repositories" in the left side.
+1) Visit webpage "repository.jboss.org/nexus/index.html" and click "Views/Repositories -> Repositories" in the left side.
 Select group "Public JBoss Repository Group", you can see the value of column "Repository Path" is 
 "https://repository.jboss.org/nexus/content/groups/jobss-public", which is the url of the repository we want.
-2) switch back to your Nexus, Click "Add -> Proxy Repository" in the menu of repositories list, 
+2) Switch back to your Nexus, Click "Add -> Proxy Repository" in the menu of repositories list, 
 fill in all the information needed and click "Save" button, especially, fill "Remote Storage Location" with the url got in 1).
 3) Add the settings of the new repository to ~/.m2/settings.xml as follows:
        <repository>
@@ -57,4 +60,32 @@ Add a dependency on the jboss to ~/workspace/FileSyncer/http/server/pom.xml as f
     </dependency>
 Then build FileSyncer server using "mvn package", you can see jboss-4.2.1.GA.jar is downloaded in the console output,
 and you can double check it by looking into ~/.m2/respository to see whether a jboss directory exists or not.
+5) Add the new repository to public group
+If you want to add the new repository to the public group, you navigate to the public group and click "Confgiuration",
+you can see "JBoss Public Repository" is in the "Available Repositories" list(if you do not see it, please click "Refresh"
+item in the menu). Drag the "JBoss Public Repository" to the "Ordered Group Repositories".
 
+4. Run FileSyncer Server
+The .jar package generated in directory "target/" using the pom.xml constructed till now doesn't contain the dependent .jars.
+So we can't run FileSyncer Server using "java -cp target/server-0.1.jar sync.server.http.HttpSyncServer host port".
+To include the dependent .jars in the .jar package generated, we need to do the following things:
+1) Add Maven assembly-plugin which is responsible for assembling the denpendent .jars into the output .jar, as follows:
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+2) Assembly
+mvn install assembly:assembly
+
+Now you can run FileSyncer Server using the following command:
+java -cp target/server-0.1-jar-with-dependencies.jar sync.server.http.HttpSyncServer host port
+
+mvn exec:java -Dexec.mainClass=sync.server.http.HttpSyncServer
