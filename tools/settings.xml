@@ -1,0 +1,28 @@
+<settings>
+<profiles> 
+   <profile> 
+     <id>nexus public</id> 
+     <repositories> 
+       <repository> 
+           <id>nexus public</id> 
+           <name>local private nexus</name> 
+           <url>http://localhost:8081/nexus/content/groups/public</url> 
+           <releases><enabled>true</enabled></releases>
+	   <snapshots><enabled>true</enabled></snapshots>
+       </repository>
+     </repositories>
+     <pluginRepositories>
+       <pluginRepository>
+         <id>nexus</id>
+           <name>local private nexus</name>
+           <url>http://localhost:8081/nexus/content/groups/public</url>
+           <releases><enabled>true</enabled></releases>
+	   <snapshots><enabled>true</enabled></snapshots>
+       </pluginRepository>
+     </pluginRepositories>
+   </profile>
+
+<activeProfiles> 
+    <activeProfile>nexus public</activeProfile> 
+</activeProfiles>
+</settings>

@@ -1,0 +1,30 @@
+
+
+0. Overview
+Put it simply, we can treat maven as a build system that helps developers to build their codes, including compiling, packaging, testing, and dependecies resolution, etc.
+pom.xml in the directory that a module resides is the core of maven, it specifies all the information to tell maven how to build the module. Maven core knows nothing about how to build the module, it
+is responsible for parsing the pom.xml and downloading necessary plugins that does the actual work(validation, compile, package, install, deploy, etc).
+
+1. Some concepts
+a. Goals
+"create" in "archetype:create" is a goal, each maven plugin implements several goals. For example, plugin Compiler contains several goals used to compile and test source files.
+
+b. Phases
+"install" in "mvn install" is a phase. Each phase are associated with several goals. For example, phase "package" is associated with goal "jar:jar" by default if it is required to packaged as a jar.
+You can associate a phase with non-default goals by specifying the corresponding configuration parameters in pom.xml.
+
+2. Project coordinate
+Each project in Maven space has a coordinate "groupId, artifactId, version, packaging", and it is unique identified by the first three items of the coordinate, that is, "groupId:artifactId:version".
+And you can find the package in directory "/groupId/artifactId/version/artifactId-version.packaging" in the corresponding repository.
+For example, jetty-http-9.0.0.v20130308.jar is identified by "org.eclipse.jetty:jetty-http:9.0.0.v20130308", and you can find it in directory "/org/eclipse/jetty/jetty-http/9.0.0.v20130308" in
+jetty repository "xxx".
+When your project depends on some projects from public source, you only have to specify them in the dependencies section of pom.xml, then maven will try to download them from the specified locations
+when they are needed, and they will be stored in local repository as well, then next time when they are needed, maven will retrieve them from local repository instead of access to the remote repository
+again. For example, jetty-http-9.0.0.v20130308 downloaded will be stored in ~/.m2/repository/org/eclipse/jetty/jetty-http/9.0.0.v20130308.
+By the way, when you run "maven install" to build your project, the last phase "install" will store your artifact in the local repository.
+
+3. Dependency management
+Maven supports transitive dependencies. More specifically, if your project depends on some project A, and project A depends on some other projects, then you only have to sepcify the dependency on
+project A in your project's pom.xml, you don't have to specify the dependencis on the projects that project A depends on. Maven will resolve the dependencies on the projects that project A depends on
+automatically. How does Maven support transitive dependencies? You must notice that when Maven resolves each dependency of your project, not only the dependent jar/war is downloaded, a file ends with
+.pom of the dependency is also downloaded, it is the pom.xml of the dependency where Maven figures out the dependencies the dependency depends on. 
