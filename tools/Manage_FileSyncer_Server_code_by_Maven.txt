@@ -3,23 +3,27 @@
 
 You can get the FileSyncer Server code from github: git@github.com:knowledgehacker/FileSyncer.git
 
-1. Setup a local repositories manager and tell Maven to retrieve repositories from it
+1. Setup a local repositories manager and tell Maven to retrieve repositories from local repositores manager
 a. Setup Sonatype Nexus as the local repositories manager
-Download Sonatype Nexus bundle from http://www.sonatype.org/nexus/go and unpack it in any directory as you like, for example, "~/workspace/nexus-2.3.1-01".
+Download Sonatype Nexus bundle from http://www.sonatype.org/nexus/go and unpack it in any directory as you like,
+for example, "~/workspace/nexus-2.3.1-01".
 cd ~/workspace/nexus-2.3.1-01
 bin/nexus start
-Then you can access to the Nexus server via webpage http://localhost:8081/nexus, you can login using the default user/password "admin/admin123".
-At this time, clicking "Views/Repositories -> Repositories" in the left side of the portal, you can see a list of all the repositories Nexus knows about by default.
+Then you can access to the Nexus server via webpage http://localhost:8081/nexus.
+The dfault administrator user/password is "admin/admin123".
+At this time, clicking "Views/Repositories -> Repositories" in the left side of the webpage, 
+you can see a list of all the repositories Nexus knows about by default.
 N.B. 1) To stop Nexus, execute "bin/nexus stop" in directory "nexus_directory". 
-2) To configure the address of your Nexus server, change "application-host" item in "~/workspace/nexus-2.3.1-01/conf/nexus.properties.
+2) To change the address of your Nexus server, change "application-host" item in "nexus-2.3.1-01/conf/nexus.properties".
 
-b.Create file settings.xml in directory "~/.m2" to use nexus to manage repositories in local repository instead of from remote Maven central repository.
-Add repositories to your public group in settings.xml.
-An sample settings.xml can be found in the same directory this article resides.
+b.Create file settings.xml in directory "~/.m2", tell Maven to get repositories from local repositories manager
+For an sample setting, please refer to file "settings.xml" in the same directory this article resides.
 
 2. Manage FileSyncer Server code by Maven
-1) Change the structure of sourcef files in directory "FileSyncer/http/server" to conform to Maven source code layout rule, that is, create a "java" directory in "src/main".
-And change the package name in each file, for example, change "package main.sync.server.http" to "package sync.server.http" in "src/main/java/sync/server/http/HttpSyncServer.java".
+1) Change the structure of sourcef files in directory "FileSyncer/http/server" to conform to Maven source code layout rule,
+that is, create a "java" directory in "src/main".
+And change the package name in each file, for example, change "package main.sync.server.http" to "package sync.server.http"
+in "src/main/java/sync/server/http/HttpSyncServer.java".
 
 2) Create file "pom.xml" in directory "FileSyncer/http/server".
 Specify the project coordinate "groupId, artifactId, version", dependencies.
@@ -27,12 +31,13 @@ For detailed information, please refer to file "pom.xml" in "FileSyncer/http/ser
 
 3. Add custom repositories for missing dependencies
 If a repository your project depends on doesn't exist in the repositories list, you can add it by yourself.
-For example, your project depends on jboss which doesn't exist in the repositories list by default, you can find and add a Maven repository containing jboss as follows:
-1) browser "repository.jboss.org/nexus/index.html" and click "Views/Repositories -> Repositories" in the left side of the webpage.
-Select group "Public JBoss Repository Group", you can see the value of column "Repository Path" is "https://repository.jboss.org/nexus/content/groups/jobss-public".
-This is the url of the repository we want.
-2) switch back to your Nexus, Click "Add -> Proxy Repository" in the menu of repositories list, fill in all the information needed and click "Save" button.
-Specially, fill "Remote Storage Location" with the url got in 1).
+For example, your project depends on jboss which doesn't exist in the repositories list by default,
+you can find and add a Maven repository containing jboss as follows:
+1) visit webpage "repository.jboss.org/nexus/index.html" and click "Views/Repositories -> Repositories" in the left side.
+Select group "Public JBoss Repository Group", you can see the value of column "Repository Path" is 
+"https://repository.jboss.org/nexus/content/groups/jobss-public", which is the url of the repository we want.
+2) switch back to your Nexus, Click "Add -> Proxy Repository" in the menu of repositories list, 
+fill in all the information needed and click "Save" button, especially, fill "Remote Storage Location" with the url got in 1).
 3) Add the settings of the new repository to ~/.m2/settings.xml as follows:
        <repository>
           <id>jboss public</id>
@@ -41,7 +46,8 @@ Specially, fill "Remote Storage Location" with the url got in 1).
           <releases><enabled>true</enabled></releases>
           <snapshots><enabled>true</enabled></snapshots>
        </repository>
-Note the url "http://localhost:8081/nexus/content/repositories/jboss" is got from "Repository Path" column of the new repository.
+Note the url value "http://localhost:8081/nexus/content/repositories/jboss" comes from "Repository Path" column 
+of the new repository "JBoss Public Repository".
 4) Test the new repository
 Add a dependency on the jboss to ~/workspace/FileSyncer/http/server/pom.xml as follows:
     <dependency>
@@ -49,6 +55,6 @@ Add a dependency on the jboss to ~/workspace/FileSyncer/http/server/pom.xml as f
       <artifactId>jboss</artifactId>
       <version>4.2.1.GA</version>
     </dependency>
-Then build FileSyncer server using "mvn package", you can see jboss-4.2.1.GA.jar is downloaded in the console output, and you can double check it by looking into ~/.m2/respository to see whether
-a jboss directory exists or not.
+Then build FileSyncer server using "mvn package", you can see jboss-4.2.1.GA.jar is downloaded in the console output,
+and you can double check it by looking into ~/.m2/respository to see whether a jboss directory exists or not.
 
