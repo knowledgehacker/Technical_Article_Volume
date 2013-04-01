@@ -1,0 +1,9 @@
+
+1) Navigation
+Shift + ^ # jump to the head of a line
+Shift + $ # jump to the tail of a line
+Shift + e # jump one word forward
+Shift + b # jump one word backward
+
+Ctrl + f # page down
+Ctrl + b # page up

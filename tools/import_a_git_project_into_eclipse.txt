@@ -1,0 +1,7 @@
+
+Click "File->import", select "Git -> Projects from Git", click "Next", Select "Local" and double click it, Dialog "Import projects from Git" pops up.
+If the Git project you want to add doesn't exists in the "Select a Git Repository" list, click "Add..." button in the right side of the dialog.
+Dialog "Add Git Repositories" pops up, input the path of the directory where your Git project resides in "Directory", and click "Search" botton, 
+select and double click the Git project you want to add. Now we will return to dialog "Select a Git Repository", select the Git project, and click
+"Next" botton, select "Import as general project", and click "Next" botton, input the project name. Done!
+
