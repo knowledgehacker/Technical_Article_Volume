@@ -1,5 +1,5 @@
-												Server Work Flow
-													- by minglin, 2013-03-29
+								Server Work Flow - based on Jetty Web Server 9.0
+										- by minglin, 2013-03-29
 
 1. Sample code for creating, configuring, and starting a Jetty web server
 	public static void main(String[] args) {
@@ -47,8 +47,9 @@
 	}
 
 2. Sever start work flow illustrated
-In this section, we illustrate what Jetty web server is doing behind the scene from a client asks to connect to the web server and makes a request
-to the connection is accepted, and the corresponding method(doGet/Post/Put/Delete) of the servelet handler is invoked to handle the reqeust.
+In this section, we illustrate what Jetty web server is doing behind the scene from a client asks to connect to the
+web server and makes a request to the connection is accepted, and the corresponding method(doGet/Post/Put/Delete) 
+of the servelet handler is invoked to handle the reqeust.
 
 2.1 Call chain of Server
 Server is a HandleWrapper which is an lifecycle managed Handlers container. 
@@ -62,21 +63,22 @@ Server is a HandleWrapper which is an lifecycle managed Handlers container.
 			|
 	      Server
 
-So Server.start() overrides util/component/AbstractLifeCycle.start(), which sets its state to starting, calls doStart(), and sets its state to 
-started. Server.doStart() calls super.doStart() and starts all the Connectors it aggregates. Look into the implementation of doStart() follwing 
-the inheritance chain above, we know Server.doStart() will call ContainerLifeCycle.doStart() which starts all the beans added to it finally. 
-And from Server code, we know the thread pool in "_threadPool" is added as beans. So super.start() in Server.doStart() starts thread pool, and
-then starts all connectors it aggregates.
+So Server.start() overrides util/component/AbstractLifeCycle.start(), which sets its state to starting, calls doStart(),
+and sets its state to started. Server.doStart() calls super.doStart() and starts all the Connectors it aggregates. 
+Look into the implementation of doStart() follwing the inheritance chain above, we know Server.doStart() will call 
+ContainerLifeCycle.doStart() which starts all the beans added to it finally. 
+And from Server code, we know the thread pool in "_threadPool" is added as beans. So super.start() in Server.doStart() 
+starts thread pool, and then starts all connectors it aggregates.
 
 2.2 What does ServerConnector do?
 2.2.1 Overview
-ServerConnector creates a number of threads "AbstractConnector$Acceptor", each of which creates a ServerSocketChannel to accept client connection 
-requests. Once a client connection is accepted, a SocketChannel is returned, we create a Runnable "Accept" for the SocketChannel and submit it as
-a change to one of the selectors in SelectorManager.
-Each selector in SelectorManager is a ManagedSelector which calls select() repeatedly to select the SocketChannels those are ready for some events
-and process them.
-N.B. ServerConnector uses Executor service to run a number of Selector tasks(io/SelectorManager), the number of them equals to the number of 
-processors available to the JVM by default(Runtime.getRuntime().availableProcessors()).
+ServerConnector creates a number of threads "AbstractConnector$Acceptor", each of which creates a ServerSocketChannel 
+to accept client connection requests. Once a client connection is accepted, a SocketChannel is returned, we create a 
+Runnable "Accept" for the SocketChannel and submit it as a change to one of the selectors in SelectorManager.
+Each selector in SelectorManager is a ManagedSelector which calls select() repeatedly to select the SocketChannels that
+are ready for some events and process them.
+N.B. ServerConnector uses Executor service to run a number of Selector tasks(io/SelectorManager), the number of them 
+equals to the number of processors available to the JVM by default(Runtime.getRuntime().availableProcessors()).
 
 2.2.2 Connector class hierarchy
 Connector
@@ -87,10 +89,10 @@ AbstractConnector    NetworkConnector
 	   |
      ServerConnector
 
-AbstractConnector: an abstract implementation of Connector that provides a ConnectionFactory mechanism for creating Connection instances for 
-various protocols (HTTP, SSL, SPDY, etc).
-NetworkConnector: a Connector for TCP/IP network connectors, it is an interface which provides TCP/IP network connectors specific methods, such as
-open, close, getHost, getPort, etc.
+AbstractConnector: an abstract implementation of Connector that provides a ConnectionFactory mechanism for creating 
+Connection instances for various protocols (HTTP, SSL, SPDY, etc).
+NetworkConnector: a Connector for TCP/IP network connectors, it is an interface which provides TCP/IP network 
+connectors specific methods, such as open, close, getHost, getPort, etc.
 
 2.2.3 Creates a number of threads "AbstractConnector$Acceptor" to accept client connection requests
 jetty-io/src/main/java/org/eclipse/jetty/io/AbstractConnector.java:
@@ -132,9 +134,10 @@ public abstract class AbstractConnector extends ContainerLifeCycle implements Co
         LOG.info("Stopped {}", this);
     }
 }
-In doStart, a CountDownLatch "_stopping" is created for _acceptors.length number of threads, and in doStop, _stopping.await is called to wait for 
-the Acceptors to complete. Actually only if the server is running, then while(isAccepting()) loop in AbstractConnector$Acceptor.run will not exit,
-so the Acceptor will not exit. That is, the acceptors will terminate only if the server is shutdown.
+In doStart, a CountDownLatch "_stopping" is created for _acceptors.length number of threads, and in doStop, 
+_stopping.await is called to wait for the Acceptors to complete. Actually only if the server is running, 
+then while(isAccepting()) loop in AbstractConnector$Acceptor.run will not exit, so the Acceptor will not exit. 
+That is, the acceptors will terminate only if the server is shutdown.
 jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java:
     private class Acceptor implements Runnable
     {
@@ -177,20 +180,20 @@ jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java:
 			...
 		}
 	}
-Method "accept" in AbstractConnector is an abstract method, server/ServerConnector overrides this "accept" method to use ServerSocketChannel to
-accept client connections. It also override "open" in server/NetworkConnector which performs the activities needed to open the network 
-communication(for example, to start accepting incoming network connections). AbstractNetworkConnector.doStart() calls open(), then super.doStart()
-(AbstractConnector.doStart()).
+Method "accept" in AbstractConnector is an abstract method, server/ServerConnector overrides this "accept" method
+to use ServerSocketChannel to accept client connections. It also override "open" in server/NetworkConnector which
+performs the activities needed to open the network communication(for example, to start accepting incoming network
+connections). AbstractNetworkConnector.doStart() calls open(), then super.doStart()(AbstractConnector.doStart()).
 ServerConnector doesn't override method doStart(), so it inherits method doStart() from AbstractNetworkConnector.
-ServerConnector overrides method open() in AbstractNetworkConnector which provides an implementation using ServerSocketChannel to handle connect 
-requests. So ServerConnector.doStart() will call ServerConnector.open(), then AbstractNetworkConnector.doStart() which calls AbstractConnector
-.doStart(). AbstractConnector.doStart() creates a pool of threads acceptors of type Acceptor which calls accept to handle connect requests, 
-while in AbstractConnector method accept is an abstract method, which is implemented in ServerConnector, that is why accept can use the 
-ServerSocketChannel created and stored in private field "_acceptChannel" in ServerConnector.
-AbstractConnector abstracts the work flow to handle connect requests, it is designed to not involve the implementation details. So it provides two
-abstract methods open and accept. While ServerConnector provides implementation details to handle connect requests.
-In ServerConnector.accept, a connect request is accepted and register the accepted client channel to perform later non-blocking read/write 
-operations.
+ServerConnector overrides method open() in AbstractNetworkConnector and provides an implementation using 
+ServerSocketChannel to handle connect requests. So ServerConnector.doStart() will call ServerConnector.open(), 
+then AbstractNetworkConnector.doStart() which calls AbstractConnector.doStart(). AbstractConnector.doStart() 
+creates a pool of threads acceptors of type Acceptor which calls accept to handle connect requests, 
+while in AbstractConnector method accept is an abstract method, which is implemented in ServerConnector, that is 
+why accept can use the ServerSocketChannel created and stored in private field "_acceptChannel" in ServerConnector.
+AbstractConnector abstracts the work flow to handle connect requests, it is designed not to involve implementation 
+details. So the implementation dependent operations, such as open and accept, are declared as abstract methods.
+ServerConnector provides an implementation of these methods. ServerConnector.accept() is implemented as follows: 
 jetty-server/src/main/java/org/eclipse/jetty/server/ServerConnector.java:
     @Override
     public void accept(int acceptorID) throws IOException
@@ -208,8 +211,8 @@ jetty-server/src/main/java/org/eclipse/jetty/server/ServerConnector.java:
     }
 
 2.2.4 Submit Runnable "Accept" for each socket channel.
-When a client connection is accepted, a SocketChannel is ruturned. For each socket channel, we create a Runnable "Accept" for it, and submit it to
-one of ManagedSelector as follows:
+When a client connection is accepted, a SocketChannel is ruturned. For each socket channel, we create a Runnable 
+"Accept" for it, and submit it to one of ManagedSelectors as a change as follows:
 jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java:
     /**
      * <p>Registers a channel to perform non-blocking read/write operations.</p>
@@ -259,8 +262,8 @@ Sjetty-io/src/main/java/org/eclipse/jetty/io/electorManager$ManagedSelector:
                     wakeup();
             }
         }
-From the code snippet above, we know a Runnable "Accept" is submitted as a change to one of ManagedSelector, and it will be executed before 
-ManagedSelector calls _selector.select() to process the selected socket channels.
+From the code snippet above, we know a Runnable "Accept" is submitted as a change to one of ManagedSelector, and 
+it will be executed before ManagedSelector calls _selector.select() to process the selected socket channels.
 jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager$ManagedSelector:
         public void select()
         {
@@ -295,7 +298,7 @@ jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager$ManagedSelector:
                 }
                 selectedKeys.clear();
             }
-The Runnable "Accept" registers the socket channel with the ManagedSelector and attach a new EndPoint to the SelectionKey.
+The Runnable "Accept" registers the socket channel with the ManagedSelector and attach a new EndPoint to key.
 jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java:
     /**
      * <p>Registers a channel to perform non-blocking read/write operations.</p>
@@ -335,13 +338,13 @@ jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java:
         }
     }
 
-2.2.5 ManagedSelector calls select() to find out the socket channels whose waiting events on have been detected and process them        
-When the SelectorManager is started, it creates several ManagedSelectors and start them. While each ManagedSelector calls select() repeatedly to 
-find the client socket channels that are ready to accept connection or read/write.
-Note SelectorManger is started when ServerConnector is started, since SelectorManager is added as a bean to ServerConnector.
-select() calls processChanges(), then processKey(SelectionKey) to process all the selected keys. processChanges will run all the Runnables 
-submitted to the ManagedSelector as changes.
-ProcessKey(SelectionKey) calls (SelectableChannelEndPoint)attachment.onSelected() to process the SelectionKey, as follows:
+2.2.5 ManagedSelector calls select() to find out the socket channels that are signaled and process them        
+When the SelectorManager is started, it creates several ManagedSelectors and start them. While each ManagedSelector 
+calls select() repeatedly to find the client socket channels that are ready to accept connection or read/write.
+Note SelectorManger is started once ServerConnector is started, since it is added as a bean to ServerConnector.
+select() calls processChanges(), then processKey(SelectionKey) to process all the selected keys. processChanges 
+will run all the Runnables submitted to the ManagedSelector as changes.
+ProcessKey(SelectionKey) calls (SelectableChannelEndPoint)attachment.onSelected() to process the SelectionKey:
 jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java:
         @Override
         public void run()
@@ -466,14 +469,16 @@ jetty-io/src/main/java/org/eclipse/jetty/io/AbstractEndPoint.java:
         _fillInterest.register(callback);
     }
 
-From the code snippet above, we know createEndPoint creates an EndPoint and Connection, and registers a read callback of the new Connection with 
-the new EndPoint, this is how the new Connection is bound to the new EndPoint. Thus when a read/write I/O event is detected on a client socket 
-channel, the associated end point will get notified, and progates it to the bound connection.
+From the code snippet above, we know createEndPoint creates an EndPoint and Connection, and registers a read callback 
+of the new Connection with the new EndPoint, this is how the new Connection is bound to the new EndPoint. 
+Thus when a read/write I/O event is detected on SocketChannel, the associated EndPoint will get notified, the EndPoint 
+then read data from the SocketChannel and progates it to the bound Connection.
 Note:
-createEndPoint(...) calls newEndPoint(...) to create a EndPoint, while newEndPoint(...) is an abstract method in SelectorManager.
-The implementation of actual newEndPoint(...) used resides in ServerConnector$ServerConnectorManager which extends SelectorManager, it creates
-an SelectableChannelEndPoint. Similarly ServerConnector$ServerConnectorManager creates a new HttpConnection by calling its newConnection(...).
-Actually from the constructor of SeverConnector, we know the SelectorManager created is of actual type "ServerConnector$ServerConnectorManager":
+createEndPoint(...) calls newEndPoint(...) which is an abstract method in SelectorManager to create an EndPoint.
+The implementation of actual newEndPoint(...) used resides in ServerConnector$ServerConnectorManager which extends 
+SelectorManager, it creates an SelectChannelEndPoint. Similarly ServerConnector$ServerConnectorManager creates
+a new HttpConnection by calling its newConnection(...).
+From the constructor of SeverConnector, we know the SelectorManager created is "ServerConnector$ServerConnectorManager":
 jetty-server/src/main/java/org/eclipse/jetty/server/ServerConnector.java:
     public ServerConnector(
         @Name("server") Server server,
@@ -499,8 +504,9 @@ AbstractConnection
 HttpConnection
 
 2.2.7 Read data from the socket channel when the read event it is waiting for has been detected
-If the attachment is an instance of SelectableChannelEndPoint, the onSelected calllback is called, which means a read/write event is detected on 
-the bound SocketChannel by the SelectorManager. We call (SelectableChannelEndPoint)attchment.onSelected() to process the read/write event.
+If the attachment is an instance of SelectableChannelEndPoint, the onSelected calllback is called, 
+which means a read/write event is detected on the bound SocketChannel by the SelectorManager. 
+We call (SelectableChannelEndPoint)attchment.onSelected() to process the read/write event.
 jetty-io/src/main/java/org/eclipse/jetty/io/SelectableChannelEndPoint.java:
     @Override
     public void onSelected()
@@ -516,9 +522,12 @@ jetty-io/src/main/java/org/eclipse/jetty/io/SelectableChannelEndPoint.java:
         if (_key.isWritable())
             getWriteFlusher().completeWrite();
     }
-From the code snippet above, we know if the selected key "_key" is ready to read(_key.isReadable() returns true), AbstractEndPoint.getFillInterest
-() is called to get the FillInterest that is stored in private field "_fillInterest" of AbstractEndPoint and calls the FillInterest.fillable(). 
+From the code snippet above, we know if the selected key "_key" is ready to read(_key.isReadable() returns true), 
+AbstractEndPoint.getFillInterest() is called to get the FillInterest that is stored in private field "_fillInterest"
+of AbstractEndPoint and calls the FillInterest.fillable(). 
 While FillInterest.fillable() calls the read callback's onSucceed() which will calls HttpConnection.onFillable().
+HttpConnection.onFillable() calls getEndPoint().fill(_requestBuffer) to read data from the associated SocketChannel
+into _requestBuffer, then calls _parser.parseNext(_requestBuffer) to parse the data in _requestBuffer.
 jetty-io/src/main/java/org/eclipse/jetty/io/FillInterest.java:
     /* ------------------------------------------------------------ */
     /** Call to signal that a read is now possible.
@@ -584,10 +593,80 @@ jetty-io/src/main/java/org/eclipse/jetty/io/AbstractConnection.java:
                 run();
         }
 
-2.2.8 Wrap the data got from the socket channel into a HttpRequest, and pass the HttpRequest to the corresponding method of a Servlet to handle.
-HttpConnection's callback onFillable fills the request buffer using the data read from the corresponding SocketChannel by its bound EndPoint, and 
-calls HttpChannelOverHttp.run() which will calls Server.handle(HttpChannel<?>) to handle the http request. 
-And Server.handle(...) calls ServletHandler.doHandle() finally. 
+jetty-server/src/main/java/org/eclipse/jetty/server/HttpConnection.java:
+    /**
+     * <p>Parses and handles HTTP messages.</p>
+     * <p>This method is called when this {@link Connection} is ready to read bytes from the {@link EndPoint}.
+     * However, it can also be called if there is unconsumed data in the _requestBuffer, as a result of
+     * resuming a suspended request when there is a pipelined request already read into the buffer.</p>
+     * <p>This method fills bytes and parses them until either: EOF is filled; 0 bytes are filled;
+     * the HttpChannel finishes handling; or the connection has changed.</p>
+     */
+    @Override
+    public void onFillable()
+    {
+        LOG.debug("{} onFillable {}", this, _channel.getState());
+
+        setCurrentConnection(this);
+        try
+        {
+            while (true)
+            {
+                // Can the parser progress (even with an empty buffer)
+                boolean call_channel=_parser.parseNext(_requestBuffer==null?BufferUtil.EMPTY_BUFFER:_requestBuffer);
+
+                // If there is a request buffer, we are re-entering here
+                if (!call_channel && BufferUtil.isEmpty(_requestBuffer))
+                {
+                    if (_requestBuffer == null)
+                        _requestBuffer = _bufferPool.acquire(getInputBufferSize(), REQUEST_BUFFER_DIRECT);
+
+                    int filled = getEndPoint().fill(_requestBuffer);
+                    if (filled==0) // Do a retry on fill 0 (optimisation for SSL connections)
+                        filled = getEndPoint().fill(_requestBuffer);
+
+                    LOG.debug("{} filled {}", this, filled);
+
+		...
+
+	}
+jetty-io/src/main/java/org/eclipse/jetty/io/ChannelEndPoint.java:
+    @Override
+    public int fill(ByteBuffer buffer) throws IOException
+    {
+        if (_ishut)
+            return -1;
+
+        int pos=BufferUtil.flipToFill(buffer);
+        try
+        {
+            int filled = _channel.read(buffer);
+            LOG.debug("filled {} {}", filled, this);
+
+            if (filled>0)
+                notIdle();
+            else if (filled==-1)
+                shutdownInput();
+
+            return filled;
+        }
+        catch(IOException e)
+        {
+            LOG.debug(e);
+            shutdownInput();
+            return -1;
+        }
+        finally
+        {
+            BufferUtil.flipToFlush(buffer,pos);
+        }
+    }
+
+2.2.8 Wrap the data got from SocketChannel into a HttpRequest, and pass it to the corresponding method of a Servlet to handle.
+HttpConnection's callback onFillable fills the request buffer using the data read from the corresponding SocketChannel by its
+bound EndPoint, and calls HttpChannelOverHttp.run()(HttpChannelOverHttp inherits method run() from HttpChannel) which will 
+calls Server.handle(HttpChannel<?>) to handle the http request. And Server.handle(...) calls ServletHandler.doHandle() finally.
+Question: the _requestBuffer in HttpConnection is wrapped into _request in HttpChannel? If yes, how? 
 HttpHandler
 	|
 HttpParser.RequestHandler<T>
@@ -597,18 +676,19 @@ HttpChannel
 Note ServletContextHandler.addServlet(...) calls ServletHandler.addServletWithMapping(...).
 
 2.2.9 Summary 
-In summary, interface EndPoint is introduced to bridge the socket channel with the http connection. EndPoint's rule is to propogate the data got 
-from its associated socket channel to HttpConnection, which can be depcited as follows:
+In summary, interface EndPoint is introduced to bridge the socket channel with the http connection. EndPoint's rule is to 
+propogate the data got from its associated socket channel to HttpConnection, which can be depcited as follows:
 			  events		  							data
 SocketChannel	->	EndPoint(SelectableChannelEndPoint)	->	Connection(HttpConnection).
-An instance of EndPoint is attached to a SelectionKey to achieve the propagation, which is the mechanism to interact with high-level protocol in 
-java nio. The mechanism is stated in description of class SelectionKey as follows:
-"It is often necessary to associate some application-specific data with a selection key, for example an object that represents the state of a high
--level protocol and handles readiness notifications in order to implement that protocol. Selection keys therefore support the attachment of a 
-single arbitrary object to a key. An object can be attached via the attach method and then later retrieved via the attachment method." 
-And interface Connection is introduced as an abstraction of all kinds of connections, such as SslConnection, HttpConnection, etc. 
-Its convenient implementation AbstractConnection takes charges of the protocol independent tasks, such as registering a listener with a conneciton
-, interacting with the EndPoint, etc. And exposes some protocol dependent tasks, such as opening a connection, registering a read callback with 
-the bound end point, etc, as abstract methods. All the classes take charge of protocol independent tasks is in jetty-io/src/main/java/org/eclipse/
-jetty/io.
+An instance of EndPoint is attached to a SelectionKey to achieve the propagation, which is the mechanism to interact with 
+high-level protocol in java nio. The mechanism is stated in description of class SelectionKey as follows:
+"It is often necessary to associate some application-specific data with a selection key, for example an object that 
+represents the state of a high-level protocol and handles readiness notifications in order to implement that protocol. 
+Selection keys therefore support the attachment of a single arbitrary object to a key. An object can be attached via the
+attach method and then later retrieved via the attachment method." 
+Interface Connection is an abstraction of all kinds of connections, such as SslConnection, HttpConnection, etc. 
+Its convenient implementation AbstractConnection takes charges of the protocol independent tasks, such as registering a 
+listener with a conneciton, interacting with the EndPoint, etc. And exposes some protocol dependent tasks, such as opening
+a connection, registering a read callback with the bound end point, etc, as abstract methods. 
+All the classes take charge of protocol independent tasks is in jetty-io/src/main/java/org/eclipse/jetty/io.
 
