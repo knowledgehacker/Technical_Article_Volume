@@ -1,7 +1,23 @@
 								Server Work Flow - based on Jetty Web Server 9.0
 										- by minglin, 2013-03-29
 
+0. Overview
+This report attempts to disclose the internal of Jetty web server. We try to illustrate how Jetty web server accept and 
+process a huge number of concurrent requests from millions of clients.
+But before diving into the source code of Jetty 9, we strongly recommend you to read the document "Jetty 7 Architecture" 
+firstly, it will save you a lot of time in the journey of disclosing the internal of Jetty web server.
+The document locates at: http://www.eclipse.org/jetty/documentation/current/basic-architecture.html 
+When reading the document, you should pay attention that the conent of some sections in the document is out of date, 
+since this document describes the architecture of Jetty 7 instead of Jetty 9. 
+We point out the content as either valuable or out of date sequentially as follows for your reference:
+1) Sections "View from 20,000 feet", and "Patterns" are valuable.
+2) Section "Connectors" is out of date.
+3) Section "Handlers", the chart of Handler hierarchy is incorrect.
+4) Sections "Nested Handlers and Handlers Called Sequentially", "Servlet Handler", and "Contexts" are valuable.
+5) Section "Web Application" is valuable.
+
 1. Sample code for creating, configuring, and starting a Jetty web server
+This report uses the following sample code that creates, configures, and starts a Jetty web server as a guide.
 	public static void main(String[] args) {
 		if(args.length != 1) {
 			System.err.println("Illegal argument number!");
@@ -67,8 +83,90 @@ So Server.start() overrides util/component/AbstractLifeCycle.start(), which sets
 and sets its state to started. Server.doStart() calls super.doStart() and starts all the Connectors it aggregates. 
 Look into the implementation of doStart() follwing the inheritance chain above, we know Server.doStart() will call 
 ContainerLifeCycle.doStart() which starts all the beans added to it finally. 
-And from Server code, we know the thread pool in "_threadPool" is added as beans. So super.start() in Server.doStart() 
-starts thread pool, and then starts all connectors it aggregates.
+And from Server code, we know the ThreadPool in "_threadPool" is added as beans. So super.start() in Server.doStart() 
+starts the ThreadPool, and then starts all connectors it aggregates. The Executor "_executor" is set to the ThreadPool 
+in AbstractConnector:
+jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java:
+    public AbstractConnector(
+            Server server,
+            Executor executor,
+            Scheduler scheduler,
+            ByteBufferPool pool,
+            int acceptors,
+            ConnectionFactory... factories)
+    {
+        _server=server;
+        _executor=executor!=null?executor:_server.getThreadPool();
+        if (scheduler==null)
+            scheduler=_server.getBean(Scheduler.class);
+        _scheduler=scheduler!=null?scheduler:new ScheduledExecutorScheduler();
+        if (pool==null)
+            pool=_server.getBean(ByteBufferPool.class);
+        _byteBufferPool = pool!=null?pool:new ArrayByteBufferPool();
+
+        addBean(_server,false);
+        addBean(_executor);
+        if (executor==null)
+            unmanage(_executor); // inherited from server
+        addBean(_scheduler);
+        addBean(_byteBufferPool);
+
+        for (ConnectionFactory factory:factories)
+            addConnectionFactory(factory);
+
+        if (acceptors<=0)
+            acceptors=Math.max(1,(Runtime.getRuntime().availableProcessors()) / 2);
+        if (acceptors > 2 * Runtime.getRuntime().availableProcessors())
+            LOG.warn("Acceptors should be <= 2*availableProcessors: " + this);
+        _acceptors = new Thread[acceptors];
+    }
+
+And ManagedSelectors in SelectorManager are scheduled to run using the threads got from the thread pool stored in 
+the Executor "_executor":
+    @Override
+    protected void doStart() throws Exception
+    {
+        super.doStart();
+        for (int i = 0; i < _selectors.length; i++)
+        {
+            ManagedSelector selector = newSelector(i);
+            _selectors[i] = selector;
+            selector.start();
+            execute(selector);
+        }
+    }
+Note the ManagedSelector is a Runnable, and the ThreadPool is an Executor.
+So the thread model used by the Connectors is as follows:
+A Connector creates a Runnable "AbstractConnector$Acceptor" to accept each connection request and submits it to ThreadPool. 
+Once a connection is accepted, a SocketChannel will be returned, SelectorManager creates a Runnable "ManagedSelector$
+Accept" and submits it to one of the ManagedSelectors in the SelectorManager. While the ManagedSelectors are sheduled to 
+run by using the threads got from the ThreadPool. 
+We assume the machine running Jetty web server has 3 processors, then the thread model can be depicted roughly as follows:
+AbstractConnector$Acceptor 1 ->
+...							 ->	ThreadPool._jobs(of type ConcurrentLinkedQueue<>)	-> ThreadPool
+AbstractConnector$Acceptor n ->
+
+ManagedSelector$Accept 1	->	
+...							->	ManagedSelector._changes(of type ConcurrentLinkedQueue<>)	->	ManagedSelector thread
+ManagedSelector$Accept i	->
+
+ManagedSelector$Accept j	->	
+...							->	ManagedSelector._changes(of type ConcurrentLinkedQueue<>)	->	ManagedSelector thread
+ManagedSelector$Accept k	->
+
+ManagedSelector$Accept m	->	
+...							->	ManagedSelector._changes(of type ConcurrentLinkedQueue<>)	->	ManagedSelector thread
+ManagedSelector$Accept n    ->
+
+ManagedSelector 1	->
+ManagedSelector 2	->	ThreadPool._jobs(of type ConcurrentLinkedQueue<>)	-> ThreadPool
+ManagedSelector 3	->
+Note Runnable "ManagedSelector$Accept" does trivial things: register a SocketChannel with the ManagedSelector, 
+create a new EndPoint, and attach it to the SelectionKey, all such Runnables are submit to a ConcurrentLinkedQueue
+"_changes" in one of ManagedSelectors, and they are run in the ManagedSelector thread before each run of select().
+Question: The thread model used to the process of the selected SocketChannel? 
+For example, when SelectorManager$ManagedSelector.select() calls processKey(SelectionKey) to process key, is the 
+read/write operations run in the ManagedSelector thread, or a new thread? Where to get such clue?
 
 2.2 What does ServerConnector do?
 2.2.1 Overview
@@ -662,17 +760,87 @@ jetty-io/src/main/java/org/eclipse/jetty/io/ChannelEndPoint.java:
         }
     }
 
-2.2.8 Wrap the data got from SocketChannel into a HttpRequest, and pass it to the corresponding method of a Servlet to handle.
+2.2.8 Wrap the data got from SocketChannel into a HttpRequest, and pass it to the corresponding service method of a Servlet.
 HttpConnection's callback onFillable fills the request buffer using the data read from the corresponding SocketChannel by its
-bound EndPoint, and calls HttpChannelOverHttp.run()(HttpChannelOverHttp inherits method run() from HttpChannel) which will 
-calls Server.handle(HttpChannel<?>) to handle the http request. And Server.handle(...) calls ServletHandler.doHandle() finally.
-Question: the _requestBuffer in HttpConnection is wrapped into _request in HttpChannel? If yes, how? 
-HttpHandler
+bound EndPoint, and calls HttpChannelOverHttp.run()(HttpChannelOverHttp inherits method run() from HttpChannel) which calls 
+Server.handle(HttpChannel<?>) to handle the http request. 
+And Server.handle(HttpChannel<?>) calls ServletContextHandler.doHandle() finally, the call chain is as follows:
+Server.handle(HttpChannel) -> ScopedHandler.handle(String, Request, HttpServletRequest, HttpServletResponse) -> ContextHandler
+.doHandle(String, Request, HttpServletRequest, HttpServletResponse).
+Note: From the sample code, we know the context handler set in Server is a ServletContextHandler. 
+Server.handle(HttpChannel) actually calls ServletContextHandler.handle(String, Request, HttpServletRequest, HttpServletResponse)
+which is inherited from ScopedHandler, and ScopedHandler.handle(String, Request, HttpServletRequest, HttpServletResponse) 
+actually calls ServletContextHandler.doHandle(String, Request, HttpServletRequest, HttpServletResponse) which is inherited from 
+ContextHandler. While ServletContextHandler wraps a ServletHandler which is created when ServletContextHandler.addServlet(...)
+is called to add servlet-path mappings to the ServletContextHandler.
+jetty-servlet/src/main/java/org/eclipse/jetty/servlet/ServletContextHandler.java:
+    /* ------------------------------------------------------------ */
+    /** conveniance method to add a servlet.
+     */
+    public ServletHolder addServlet(String className,String pathSpec)
+    {
+        return getServletHandler().addServletWithMapping(className, pathSpec);
+    }
+
+    /* ------------------------------------------------------------ */
+    /** conveniance method to add a servlet.
+     */
+    public ServletHolder addServlet(Class<? extends Servlet> servlet,String pathSpec)
+    {
+        return getServletHandler().addServletWithMapping(servlet.getName(), pathSpec);
+    }
+
+    /* ------------------------------------------------------------ */
+    /**
+     * @return Returns the servletHandler.
+     */
+    @ManagedAttribute(value="context servlet handler", readonly=true)
+    public ServletHandler getServletHandler()
+    {
+        if (_servletHandler==null && !isStarted())
+            _servletHandler=newServletHandler();
+        return _servletHandler;
+    }
+
+    /* ------------------------------------------------------------ */
+    protected ServletHandler newServletHandler()
+    {
+        return new ServletHandler();
+    }
+
+Questions: 
+1) the _requestBuffer in HttpConnection is wrapped into _request in HttpChannel? If yes, how? 
+2) How the Request is mapped to the corresponding Servlet???
+ServletContextHandler should delegate request handling to its encapsulated ServletHandler, then the ServerletHandler will get 
+the Servlet for the request by querying the path-ServletHolder mapping. But I don't know how the delegation is done???
+
+HttpHandler(an interface in package "com.sun.net.httpserver" in jre API) 
 	|
 HttpParser.RequestHandler<T>
 	|
 HttpChannel
 
+class Handler hierarchy:
+		Handler(interface)
+			|
+		AbstractHandler	HandlerContainer(interface)
+			|			/
+		AbstractHandlerContainer
+			|
+		HandlerWrapper
+			|
+		ScopedHandler
+		/			|
+ServletHandler	ContextHandler
+					|
+				ServletContextHandler
+
+ContextHandler: This handler wraps a call to handle by setting the context and servlet path, plus setting the context classloader.
+ServletHandler: This handler maps requests to servlets that implement the javax.servlet.http.HttpServlet API.
+ServletContextHandler: This extension to ContextHandler allows for simple construction of a context with ServletHandler
+and optionally session and security handlers, etc.
+
+ServletContextHandler calls ServletHandler.doScoped(...) which calls ServletHandler.doHandle(...).
 Note ServletContextHandler.addServlet(...) calls ServletHandler.addServletWithMapping(...).
 
 2.2.9 Summary 
