@@ -1,0 +1,55 @@
+(1) What's "jetty-distribution-9.0.0.v20130308/etc/webdefault.xml" for?
+When you deploy your application into the servlet container Jetty, once Jetty starts, configurations in "etc/webdefault.xml" will be
+applied before the application-specific configuration in "webapps/WEB-INF/web.xml" is applied.
+It is a nice place for you to put the default configurations here, for example, mapping from "org.apache.jasper.servlet.JspServlet" 
+to all the .jsp resources "*.jsp", and mapping from "org.eclipse.jetty.servlet.DefaultServlet" to "/" and welcome files.
+While user-specified configurations, such as mapping from user-defined servlets to contexts, should be put in "webapps/WEB-INF/web.xml".
+To make the configuration file "jetty-distribution-9.0.0.v20130308/etc/webdefault.xml" be applied in embedded Jetty, we should put
+webdefault.xml to a place in your application that is easy to find, for example, "webapps". Then add the following statement to "
+src/main/resources/jetty9.xml":
+<Set name="defaultsDescriptor">./webapps/webdefault.xml</Set>
+
+(2) When and how "webapps/WEB-INF/web.xml" is parsed?
+When WebAppContext.start() is called. WebAppContext().doStart() calls WebAppContext.preConfigure() which loads the configuration classes
+(set by calling setConfigurationClasses(...)) to apply the corresponding configurations.
+Especially, WebXmlConfiguration is called to apply the configurations in "webapps/WEB-INF/web.xml".
+
+(3) How to direct requests to "localhost:9490" to "localhost:9490/index.jsp".
+Specify the mapping from servlet "org.eclipse.jetty.servlet.DefaultServlet" to context "/" to indicate that servlet DefaultServlet is 
+assigned to handle the requests to "/" and set the welcome file as well in "webapps/webdefault.xml".
+
+(4) Changes to configuration file "webapps/WEB-INF/web.xml"
+The old configuration file "webapps/WEB-INF/web.xml" introduces Spring ServletDispatcher to dispatch requests to contexts.
+Now I deprecate the use of Spring ServletDispatcher, to be recovered later.
+
+(5) Can't pass ThreadPool argument to Server via specifying <Arg>..</Arg> in "src/main/resources/jetty9.xml"?
+The configuration for Server is as follows:
+<Configure id="Server" class="org.eclipse.jetty.server.Server">
+    <Arg name="threadpool">
+      <New id="threadpool" class="org.eclipse.jetty.util.thread.QueuedThreadPool">
+        <Set name="maxThreads">1000</Set>
+        <Set name="minThreads">10</Set>
+        <Set name="idleTimeout">60000</Set>
+        <Set name="detailedDump">false</Set>
+      </New>
+    </Arg>
+
+	...
+
+</Configure>
+
+At first, I create a Server instance and configure it using an XmlConfiguration instance as follows:
+final QueuedThreadPool threadpool = new QueuedThreadPool(1000, 10, 3000);
+final Server server = new Server(threadpool);
+
+XmlConfiguration jettyConfig = new XmlConfiguration(Bootstrap.class.getResource("/jetty9.xml"));
+jettyConfig.configure(server);
+
+But when the code was executed, I found the "threadpool" argument specified in "src/main/resources/jetty9.xml" is ignored.
+By looking into code in jetty-xml/src/main/java/org/eclipse/jetty/xml/XmlConfiguration.configure(Object), I found that if the
+configuration file has "<Arg>...</Arg>" just following "<Configure" tag, it will be ignored.
+And I studie XmlConfiguration.configure(), and found it will created a new instance of object specified in "id" of tag "<Configure"
+and return it. This is what I want, call XmlConfiguration.configure() to create a Server instance and return it:
+	final XmlConfiguration jettyConfig = new XmlConfiguration(Bootstrap.class.getResource("/jetty9.xml"));
+    final Server server = (Server)(jettyConfig.configure());
+  

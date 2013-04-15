@@ -1,0 +1,9 @@
+
+
+(1) Move to the head and tail of a line
+Shell: Ctrl + A/E
+VIM: Shift + ^/$
+eclipse: Command + Left/Right Arrow
+
+(2) Install a .pkg in shell
+sudo installer -pkg *.pkg -target /

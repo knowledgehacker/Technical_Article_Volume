@@ -1,0 +1,7 @@
+
+(1) Install svn client for macboock "Cornerstone"
+Download the trial version from http://www.zennaware.com/cornerstone/index.php.
+
+(2) Add a repository pointing to the Chromium source code to "Cornerstone".
+In the repository information page, click "HTTP Server" tab. Choose protocol "HTTPS", fill "server" field with "src.chromium.org”.
+ 
