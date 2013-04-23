@@ -19,6 +19,15 @@ N.B. 1) To stop Nexus, execute "bin/nexus stop" in directory "nexus_directory".
 b.Create file settings.xml in directory "~/.m2", tell Maven to get repositories from local repositories manager
 For an sample setting, please refer to file "settings.xml" in the same directory this article resides.
 
+Maven stores artifact in the location "/<groupId>/<artifactId>/<version>/<artifactId>-<version>.<packaging>" relative to
+repository root directory. For example, as to an artifact identified with the following coordinates:
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-http</artifactId>
+      <version>${jetty.version}</version>
+    </dependency>
+Maven tries to locate it in path "/org/eclipse/jetty/jetty-http/${jetty.version}/jetty-http-${jetty.version}.jar.
+
 2. Manage FileSyncer Server code by Maven
 1) Change the structure of sourcef files in directory "FileSyncer/http/server" to conform to Maven source code layout rule,
 that is, create a "java" directory in "src/main".

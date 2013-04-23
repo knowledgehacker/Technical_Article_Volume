@@ -1,4 +1,9 @@
 
+FAQ:
+1) If we want to revert to an old version, and commit the revert to remote repository, how to do this?
+git reset HEAD~3	# revert recently 3 commits
+git reset commit_number	# revert to commit "commit_number"
+
 1. Advantages of Git over other Central Version Control System.
 Git is a distributed VCS that records each version of code image in local machine and you can push the changes to other machine. And for many developers to collaborate in a project, it is convenient
 to setup a central code repository and each developer can push changes in his local machine to the central server at any time the network is available. 

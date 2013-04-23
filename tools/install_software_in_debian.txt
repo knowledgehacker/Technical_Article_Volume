@@ -1,0 +1,22 @@
+
+1. install using apt-get
+root@linming:~# apt-get install openjdk-7-jdk
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+E: Unable to locate package openjdk-7-jdk
+
+2. Add mirror to "/etc/apt/sources.list"
+The information above means package you want to install can't be found in the mirrors in /etc/apt/sources.list.
+So you have to add the mirror containing the package to /etc/apt/sources.list:
+deb http://mirrors.ustc.edu.cn/debian/ unstable main contrib non-free
+deb-src http://mirrors.ustc.edu.cn/debian/ unstable main contrib non-free
+
+3. Update the indexing of the mirrors in "/etc/apt/source.list"
+apt-get update
+
+4. install using apt-get again
+root@linming:~# apt-get install openjdk-7-jdk
+...
+
+It works now!!!

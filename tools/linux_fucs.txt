@@ -1,0 +1,9 @@
+
+(1) Create a new user
+groupadd minglin
+useradd minglin -g minglin -d /home/minglin -m -s /bin/bash
+
+change the user's password:
+passwd minglin
+
+ssh minglin@192.168.2.108
