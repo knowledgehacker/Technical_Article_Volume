@@ -1,7 +1,0 @@
-2013-03-27:
-1. Install a Sonatype Nexus in debain to manage repositories. Try to use the Sonatype Nexus setup in debian from fedora.
-a) Download Sonatype Nexus from http://www.sonatype.org/nexus/ and install in in debian.
-b) Setup Sonatype Nexus in debain.
-c) Try Sonatype Nexus setup in debain by telling fedora to download maven plugins from Sonatype debian by editing settings in ~/.m2/settings.xml.
-
-2. Get to know about Maven.
