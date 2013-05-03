@@ -1,0 +1,86 @@
+1. When I build Jetty 9 from source code "jetty-9.0.0.v20130308" directly, I get the following build error:
+Running org.eclipse.jetty.spdy.server.SSLSynReplyTest
+Running org.eclipse.jetty.spdy.server.SSLSynReplyTest.testSynReply()
+2013-04-25 16:25:13.460:INFO:oejs.Server:main: jetty-9.0.0.v20130308
+[C] NPN supported for 76b03b7f[SSLEngine[hostname=127.0.0.1 port=52380] SSL_NULL_WITH_NULL_NULL]
+2013-04-25 16:25:13.795:WARN:oejut.QueuedThreadPool:qtp1651596471-server-1168:
+java.lang.NoSuchMethodError: sun.security.ssl.EngineInputRecord.decrypt(Lsun/security/ssl/CipherBox;Ljava/nio/ByteBuffer;)Ljava/nio/ByteBuffer;
+    at sun.security.ssl.SSLEngineImpl.readRecord(SSLEngineImpl.java:957)
+    at sun.security.ssl.SSLEngineImpl.readNetRecord(SSLEngineImpl.java:888)
+    at sun.security.ssl.SSLEngineImpl.unwrap(SSLEngineImpl.java:762)
+    at javax.net.ssl.SSLEngine.unwrap(SSLEngine.java:624)
+    at org.eclipse.jetty.io.ssl.SslConnection$DecryptedEndPoint.fill(SslConnection.java:487)
+    at org.eclipse.jetty.spdy.server.NextProtoNegoServerConnection.fill(NextProtoNegoServerConnection.java:100)
+    at org.eclipse.jetty.spdy.server.NextProtoNegoServerConnection.onFillable(NextProtoNegoServerConnection.java:68)
+    at org.eclipse.jetty.io.AbstractConnection$ReadCallback.run(AbstractConnection.java:240)
+    at org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:589)
+    at org.eclipse.jetty.util.thread.QueuedThreadPool$3.run(QueuedThreadPool.java:520)
+    at java.lang.Thread.run(Thread.java:722)
+2013-04-25 16:25:18.782:INFO:oejs.Server:main: Graceful shutdown org.eclipse.jetty.server.Server@201a9109 by  Thu Apr 25 16:25:48 CST 2013
+...
+
+From the build error, we know unit test "org.eclipse.jetty.spdy.server.SSLSynReplyTest" fails because of dependent classes are missing.
+SSL implementation is needed to test "org.ceclipse.jetty.spdy.server.SSLSynReplyTest", and I recall to make SSL Next Protocol Negotiation
+to work, we need .jar package "npn-boot-1.1.5.v20130313.jar". So I check "npn-boot-1.1.5.v20130313.jar" and find it really contains the
+classes needed by the unit tests in "org.ceclipse.jetty.spdy.server.SSLSynReplyTest".
+
+*****
+The npn-boot-xxx.jar specified in jetty.project is obsolete, use a new one.
+a. Find the components need npn-boot-xxx.jar by grep ./ -e "npn.version" -inR
+jetty-spdy/spdy-server, jetty-spdy/spdy-client, jetty-spdy/spdy-http-server, jetty-osgi/test-jetty-osgi 
+b. Change the version of npn-boot-xxx.jar in the corresponding pom.xml
+jetty-spdy/pom.xml:
+    <properties>
+        <!-- changed by minglin -->
+        <!-- <npn.version>1.1.0.v20120525</npn.version> -->
+        <npn.version>1.1.5.v20130313</npn.version>
+        <npn.api.version>1.1.0.v20120525</npn.api.version>
+    </properties>
+jetty-spdy/spdy-client/pom.xml:
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.jetty.spdy</groupId>
+            <artifactId>spdy-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.npn</groupId>
+            <artifactId>npn-api</artifactId>
+            <!-- changed by minglin -->
+            <!-- <version>${npn.version}</version> -->
+            <version>${npn.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+jetty-spdy/spdy-server/pom.xml:
+	<dependencies>
+	...
+        <dependency>
+            <groupId>org.eclipse.jetty.npn</groupId>
+            <artifactId>npn-api</artifactId>
+            <!-- changed by minglin -->
+            <!-- <version>${npn.version}</version> -->
+            <version>${npn.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+	...
+	</dependencies>
+jetty-spdy/spdy-http-server/pom.xml:
+	<dependencies>
+	...
+        <dependency>
+            <groupId>org.eclipse.jetty.npn</groupId>
+            <artifactId>npn-api</artifactId>
+            <!-- changed by minglin -->
+            <!-- <version>${npn.version}</version> -->
+            <version>${npn.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+	...
+	</dependencies>
+
+
+jetty-osgi/pom.xml:
+    <!-- changed by minglin -->
+    <!-- <npn-version>1.1.0.v20120525</npn-version> -->
+    <npn-version>1.1.5.v20130313</npn-version>
