@@ -149,3 +149,10 @@ git checkout target_branch
 git merge source_branch
 Note how Git deals with the merging from an upstream branch and a diverged branch differently.
 
+11) Undo some commits
+a. Check which commit you want to revert back to
+git log
+b. Revert back to some commit
+git reset --hard commit_no
+c. Revert back some number of commits
+git reset --hard HEAD~number
