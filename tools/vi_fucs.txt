@@ -7,3 +7,24 @@ Shift + b # jump one word backward
 
 Ctrl + f # page down
 Ctrl + b # page up
+
+10j # move down 10 rows
+10k # move up 10 rows
+10h # move left 10 columns
+10l # move right 10 columns
+
+Ctrl + o # back to the previous location
+Ctrl + i # forth to the previous location
+
+2) Search
+Shift + * # search for the next occurrence of current word(forward)
+Shift + # # search for the last occurrence of current work(backward)
+
+/word # sarch for word "word"
+n # navigate to the next occurrence of word "word"(forward)
+shift + n # navigate to the last occurrence of word "word"(backward)
+ggn	# navigate to the first match of word "word"
+GN # navigate to the last match of word "word"
+/ + up/down arrow # iterate the search pattern history
+? + up/down arrow # iterate the search pattern history
+

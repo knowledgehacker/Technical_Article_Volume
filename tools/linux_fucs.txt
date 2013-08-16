@@ -1,5 +1,5 @@
 
-(1) Create a new user
+1. Create a new user
 groupadd minglin
 useradd minglin -g minglin -d /home/minglin -m -s /bin/bash
 
@@ -7,3 +7,12 @@ change the user's password:
 passwd minglin
 
 ssh minglin@192.168.2.108
+
+2. Enable user minglin to execute operations that need root priviledge without password authentication prompt
+su root
+visudo
+%minglin        ALL=(ALL)       NOPASSWD: ALL
+ 
+3. Check what ports are open and what services are using them
+sudo nmap -sS -O 127.0.0.1	# if not installed, run "sudo yum install namp" to install it
+netstat -nap

@@ -1,0 +1,39 @@
+1. install necessary components
+sudo yum install nfs-utils nfs4-acl-tools
+sudo yum install system-config-nfs	# optional
+
+2. start services
+sudo service rpcbind restart	# nfsv4 uses rpcbind instead of portmap(nfsv2,v3) for rpc
+sudo service nfs restart
+
+3. open port used by rpcbind and nfs server
+Add the following lines to /etc/sysconfig/iptables:
+-A INPUT -m state --state NEW -m tcp -p tcp --sport 111 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --sport 2049 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 111 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 2049 -j ACCEPT
+N.B. you have to allow the rpc requests from/to the client, so you need two rules for one port,
+one rule for incoming(--sport), and the other for outcoming(--dport).
+
+4. specify the directories to export and export them
+a. Add the following line to /etc/exports
+/home/minglin/nfs/activemq/shared_data_dir      192.168.0.0/16(rw,sync,no_root_squash,no_subtree_check,fsid=1)
+N.B.
+"/home/minglin/nfs/activemq/shared_data_dir" is the directory to export
+"192.168.0.0/16" is the hosts(192.168.0.0-192.168.255.255) allowed to mount the exported directory to its local file system.
+"rw,sync,no_root_squash,no_subtree_check,fsid=1" is the options.
+rw: read/write
+sync: transmit data between nfs server and client synchronously
+no_root_squash: nfs client can operation on files in the exported directory as a root.
+no_subtree_check: not check subdirectory in the exported directory.
+fsid=1: very important!!! if you set fsid=0, then you can only specify / as the directory to export in "/etc/exports".
+
+b. export the directories
+sudo exportfs -rv
+sudo exportfs	# check whether it is the correct directory be exported
+
+5. configure /etc/hosts.allow, /etc/hosts.deny
+You can restrict the clients that can access to the remote nfs directoy by
+adding lines like:
+192.168.221.0/255.255.255.0
+N.B. this is unnecessary if you just want to get nfs4 work.
