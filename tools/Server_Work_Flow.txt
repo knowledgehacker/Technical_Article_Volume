@@ -7,9 +7,10 @@ process a huge number of concurrent requests from millions of clients.
 But before diving into the source code of Jetty 9, we strongly recommend you to read the document "Jetty 7 Architecture" 
 firstly, it will save you a lot of time in the journey of disclosing the internal of Jetty web server.
 The document locates at: http://www.eclipse.org/jetty/documentation/current/basic-architecture.html 
-When reading the document, you should pay attention that the conent of some sections in the document is out of date, 
+When reading the document, you should pay attention that the content of some sections in the document is out of date, 
 since this document describes the architecture of Jetty 7 instead of Jetty 9. 
-We point out the content as either valuable or out of date sequentially as follows for your reference:
+We list the content which is valuable and you should pay special attentation to, and the content that is out of date 
+as well in its displayed order in the document as follows for your reference:
 1) Sections "View from 20,000 feet", and "Patterns" are valuable.
 2) Section "Connectors" is out of date.
 3) Section "Handlers", the chart of Handler hierarchy is incorrect.

@@ -1,0 +1,24 @@
+1. install necessary components
+sudo yum install nfs-utils nfs4-acl-tools
+sudo yum install system-config-nfs      # optional
+
+2. start services
+sudo service rpcbind restart    # nfsv4 uses rpcbind instead of portmap(nfsv2,v3) for rpc
+
+3. open port used by rpcbind and nfs server
+Add the following lines to /etc/sysconfig/iptables:
+-A INPUT -m state --state NEW -m tcp -p tcp --sport 111 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --sport 2049 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 111 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 2049 -j ACCEPT
+N.B. you have to allow the rpc requests from/to the client, so you need two rules for one port,
+one rule for incoming(--sport), and the other for outcoming(--dport).
+
+*** the first steps are almost the same as the ones in nfs4 server setup, except in nfs4 client setup,
+you don't need to start service nfs.
+
+4. mount remote directory to local file system
+sudo mount -o rw -t nfs4 ${remote_nfs_server}:${exported_directory} ${local_directory}
+
+5. check whether mount succeeds or not
+put some files in the exported_directory and check whether they are synced to local directory

@@ -12,6 +12,21 @@ a. Goals
 b. Phases
 "install" in "mvn install" is a phase. Each phase are associated with several goals. For example, phase "package" is associated with goal "jar:jar" by default if it is required to packaged as a jar.
 You can associate a phase with non-default goals by specifying the corresponding configuration parameters in pom.xml.
+If you want to skip "test:surefire" phase, you can pass "skipTest" to mvn command as follows:
+mvn package -DskipTests
+You can also configure it in pom.xml as follows:
+<plugin>  
+    <groupId>org.apache.maven.plugins</groupId>  
+    <artifactId>maven-surefire-plugin</artifactId>  
+    <version>2.5</version>  
+    <configuration>  
+        <skipTests>true</skipTests>  
+    </configuration>  
+</plugin>  
+If you want to skip "compiler:testCompile" phase, you can pass "maven.test.skip=true" to mvn command as follows:
+mvn package -Dmaven.test.skip=true
+
+For more detailed information, please refer to http://blog.csdn.net/sin90lzc/article/details/7543262.
 
 2. Project coordinate
 Each project in Maven space has a coordinate "groupId, artifactId, version, packaging", and it is unique identified by the first three items of the coordinate, that is, "groupId:artifactId:version".

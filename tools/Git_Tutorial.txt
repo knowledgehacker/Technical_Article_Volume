@@ -1,8 +1,10 @@
 
+HEAD, index???
+
 FAQ:
 1) If we want to revert to an old version, and commit the revert to remote repository, how to do this?
 git reset HEAD~3	# revert recently 3 commits
-git reset commit_number	# revert to commit "commit_number"
+git reset commit_number	# revert to commit "commit_number", all the commits after commit "commit_number" will be reverted
 
 1. Advantages of Git over other Central Version Control System.
 Git is a distributed VCS that records each version of code image in local machine and you can push the changes to other machine. And for many developers to collaborate in a project, it is convenient
@@ -156,3 +158,43 @@ b. Revert back to some commit
 git reset --hard commit_no
 c. Revert back some number of commits
 git reset --hard HEAD~number
+
+12) View the difference between two revisions, including between current changes and the last revision
+The thing is, by default git diff actually shows the differences between "the current state of your project" (i.e. your files on your working tree) and the index (not HEAD).
+In other words, the differences are what you could tell git to further add to the index but you still haven't.
+
+if you do git diff --cached, then it will compare the index with HEAD.
+A common use is to simply run
+$ git diff
+which will show you changes in the working directory that are not yet staged for the next commit. If you want to see what is staged for the next commit, you can run
+$ git diff --cached
+which will show you the difference between the index and your last commit; what you would be committing if you run "git commit" without the "-a" option. Lastly, you can run
+$ git diff HEAD
+which shows changes in the working directory since your last commit; what you would be committing if you run "git commit -a".
+
+$ git fetch remote_repository
+$ git diff branch remote_repository/branch
+which shows changes between the remote and local repository.
+
+13) Generate a patch for a commit
+In git, one patch can be generated for a single commit, it is not allowed to generate one patch for several commits.
+git format-patch -1 commit_no	# generate a patch for commit "commit_no"
+git format-patch -3	# generate patches for topmost 3 commits, a patch for one commit
+But I don't know how to generate patches for several commits in certain range at a time.
+
+14) Rebase
+
+15) Operations on remote branch
+Consider such a scenario:
+You commit some files to a remote branch, for example, a directory "xai/spdy-api/lib" which contains maven information about Jetty 9.0.0 modules.
+But find these libraries is obsolete, that is, actually we need Jetty 9.0.4 modules. So I want to replace the files in the directory with the new ones.
+That's what I do:
+a. work locally, assume we are in directory "xai/spdy-api"
+git pull # pull commits from the remote branch
+git reset --hard HEAD~1 # undo the last commit
+git rm lib # remove directory "lib"
+cp -R ~/workspace/git/spdy/spdy-api/lib .
+git add -f lib # since the setting of repository "xai" ignores directory lib by default, we need use option "-f" to add it by force
+git commit -m "xxx"
+b. push to remote branch by force
+git push origin +xai-spdy:xai-spdy	# "+"sign pushes the commits to the remote branch by force
