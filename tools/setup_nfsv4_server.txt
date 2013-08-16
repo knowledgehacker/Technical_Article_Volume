@@ -16,6 +16,7 @@ a. add the following lines to /etc/sysconfig/iptables:
 -A INPUT -m state --state NEW -m tcp -p tcp --dport 2049 -j ACCEPT
 N.B. you have to allow the rpc requests from/to the client, so you need two rules for one port,
 one rule for incoming(--sport), and the other for outcoming(--dport).
+
 b. restart service iptables
 sudo service iptables restart
 
